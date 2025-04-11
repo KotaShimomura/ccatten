@@ -5,6 +5,14 @@
 ```
 pip install git@github.com:KotaShimomura/ccatten.git
 ```
+or
+```
+git clone git@github.com:KotaShimomura/ccatten.git
+
+cd ccatten
+
+pip install .
+```
 
 # Usage
 ```python
