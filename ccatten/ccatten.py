@@ -52,9 +52,9 @@ def _gather_circular_weights(
     return roll_weights
 
 
-class CircularAttention(nn.Module):
+class CircularConvolutionalAttention(nn.Module):
     """
-    Implementation of Circular Attention (CAT) using a gather-based version.
+    Implementation of Circular-Convolutional Attention (CAT) using a gather-based version.
     """
 
     def __init__(
@@ -111,7 +111,7 @@ class CircularAttention(nn.Module):
         return output
 
 
-class AveragedKeyCircularAttention(nn.Module):
+class AveragedKeyCircularConvolutionalAttention(nn.Module):
     """
     Implementation of the Averaged-Key variant for self- and cross-attention.
     """
@@ -199,9 +199,9 @@ class AveragedKeyCircularAttention(nn.Module):
         return output
 
 
-class CausalCircularAttention(nn.Module):
+class CausalCircularConvolutionalAttention(nn.Module):
     """
-    Implementation of Circular Attention (CAT) for causal language modeling.
+    Implementation of Circular-Convolutional Attention (CAT) for causal language modeling.
     Ensures that future tokens are masked.
     """
 
@@ -267,11 +267,11 @@ if __name__ == "__main__":
     batch_size, seq_len, dim = 2, 32, 256
     x = torch.randn(batch_size, seq_len, dim)
 
-    cat = CircularAttention(dim=dim)
+    cat = CircularConvolutionalAttention(dim=dim)
     out_cat = cat(x)
     print(f"CAT output shape: {out_cat.shape}")
 
-    avg_key = AveragedKeyCircularAttention(dim=dim)
+    avg_key = AveragedKeyCircularConvolutionalAttention(dim=dim)
     out_avg = avg_key(x)
     print(f"Averaged-Key output shape: {out_avg.shape}")
 
@@ -279,6 +279,6 @@ if __name__ == "__main__":
     out_cross = avg_key(x, context)
     print(f"Averaged-Key cross-attention output shape: {out_cross.shape}")
 
-    causal_cat = CausalCircularAttention(dim=dim)
+    causal_cat = CausalCircularConvolutionalAttention(dim=dim)
     out_causal = causal_cat(x)
     print(f"Causal CAT output shape: {out_causal.shape}")
