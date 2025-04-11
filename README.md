@@ -20,12 +20,12 @@ batch_size, seq_len, dim = 2, 256, 768
 x = torch.randn(batch_size, seq_len, dim)
 
 # basic
-cat = cat.CircularAttention(dim=dim, num_heads=8)
+cat = cat.CircularConvolutionalAttention(dim=dim, num_heads=8)
 output = cat(x)
 
 # cross-attem
 tmp = torch.randn(batch_size, seq_len*2, dim)
-avg_key = cat.AveragedKeyAttention(dim=dim, num_heads=8)
+avg_key = cat.AveragedKeyCircularConvolutionalAttention(dim=dim, num_heads=8)
 output = avg_key(x, tmp)
 
 ```
