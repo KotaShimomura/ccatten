@@ -6,6 +6,25 @@
 pip install git@github.com:KotaShimomura/ccatten.git
 ```
 
+# Usage
+```python
+
+import torch
+import ccatten as cat
+
+batch_size, seq_len, dim = 2, 256, 768
+x = torch.randn(batch_size, seq_len, dim)
+
+# basic
+cat = CircularAttention(dim=dim, num_heads=8)
+output = cat(x)
+
+# cross-attem
+tmp = torch.randn(batch_size, seq_len*2, dim)
+avg_key = AveragedKeyAttention(dim=dim, num_heads=8)
+output = avg_key(x, tmp)
+
+```
 
 # Acknowledgement
 ```
