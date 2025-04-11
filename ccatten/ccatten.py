@@ -26,14 +26,18 @@ def _gather_circular_weights(
     """
     B: int = attn_weights.shape[0]
 
-    if attn_weights.dim() != 3 or attn_weights.shape[1] != num_heads or attn_weights.shape[2] != N:
+    if (
+        attn_weights.dim() != 3
+        or attn_weights.shape[1] != num_heads
+        or attn_weights.shape[2] != N
+    ):
         raise ValueError(
             f"Unexpected attn_weights shape: {attn_weights.shape}. Expected (B, h, N), where h is num_heads."
         )
 
     # Create indices with circular shifts: indices[i, j] = (j - i) % N, shape: (N, seq_len)
     col_indices = torch.arange(seq_len, device=device)  # Shape: (seq_len,)
-    row_indices = torch.arange(N, device=device)          # Shape: (N,)
+    row_indices = torch.arange(N, device=device)  # Shape: (N,)
     indices = (col_indices.unsqueeze(0) - row_indices.unsqueeze(1)) % N  # (N, seq_len)
 
     # Expand indices to (B, num_heads, N, seq_len)
@@ -48,9 +52,9 @@ def _gather_circular_weights(
     return roll_weights
 
 
-class CircularConvolutionalAttention(nn.Module):
+class CircularAttention(nn.Module):
     """
-    Implementation of Circular-Convolutional Attention (CAT) using a gather-based version.
+    Implementation of Circular Attention (CAT) using a gather-based version.
     """
 
     def __init__(
@@ -67,7 +71,7 @@ class CircularConvolutionalAttention(nn.Module):
 
         self.num_heads: int = num_heads
         self.head_dim: int = dim // num_heads
-        self.scale: float = self.head_dim ** -0.5
+        self.scale: float = self.head_dim**-0.5
 
         # In CAT, a single projection is used for query/key (W_A)
         self.W_A = nn.Linear(dim, num_heads, bias=qkv_bias)  # Output: (B, N, h)
@@ -81,9 +85,9 @@ class CircularConvolutionalAttention(nn.Module):
         B, N, C = x.shape
 
         # Compute attention scores and apply softmax
-        z = self.W_A(x)               # (B, N, h)
-        z = z.permute(0, 2, 1)          # (B, h, N)
-        z_star = F.softmax(z, dim=-1)   # (B, h, N)
+        z = self.W_A(x)  # (B, N, h)
+        z = z.permute(0, 2, 1)  # (B, h, N)
+        z_star = F.softmax(z, dim=-1)  # (B, h, N)
         z_star = self.attn_drop(z_star)
 
         # Gather circularly shifted weights (self-attention: seq_len == N)
@@ -107,7 +111,7 @@ class CircularConvolutionalAttention(nn.Module):
         return output
 
 
-class AveragedKeyCircularConvolutionalAttention(nn.Module):
+class AveragedKeyCircularAttention(nn.Module):
     """
     Implementation of the Averaged-Key variant for self- and cross-attention.
     """
@@ -126,7 +130,7 @@ class AveragedKeyCircularConvolutionalAttention(nn.Module):
 
         self.num_heads: int = num_heads
         self.head_dim: int = dim // num_heads
-        self.scale: float = self.head_dim ** -0.5
+        self.scale: float = self.head_dim**-0.5
 
         # Separate query, key, and value projections
         self.W_Q = nn.Linear(dim, dim, bias=qkv_bias)
@@ -155,7 +159,9 @@ class AveragedKeyCircularConvolutionalAttention(nn.Module):
                 raise ValueError("Context must have 3 dimensions (B, M, C)")
             B_ctx, M, C_ctx = context.shape
             if B != B_ctx or C != C_ctx:
-                raise ValueError("Batch size and feature dimension of context must match input x")
+                raise ValueError(
+                    "Batch size and feature dimension of context must match input x"
+                )
             K = self.W_K(context).reshape(B, M, self.num_heads, self.head_dim)
             K = K.permute(0, 2, 1, 3)  # (B, h, M, C/h)
             V = self.W_V(context).reshape(B, M, self.num_heads, self.head_dim)
@@ -193,9 +199,9 @@ class AveragedKeyCircularConvolutionalAttention(nn.Module):
         return output
 
 
-class CausalCircularConvolutionalAttention(nn.Module):
+class CausalCircularAttention(nn.Module):
     """
-    Implementation of Circular-Convolutional Attention (CAT) for causal language modeling.
+    Implementation of Circular Attention (CAT) for causal language modeling.
     Ensures that future tokens are masked.
     """
 
@@ -213,7 +219,7 @@ class CausalCircularConvolutionalAttention(nn.Module):
 
         self.num_heads: int = num_heads
         self.head_dim: int = dim // num_heads
-        self.scale: float = self.head_dim ** -0.5
+        self.scale: float = self.head_dim**-0.5
 
         self.W_A = nn.Linear(dim, num_heads, bias=qkv_bias)
         self.W_V = nn.Linear(dim, dim, bias=qkv_bias)
@@ -226,9 +232,9 @@ class CausalCircularConvolutionalAttention(nn.Module):
         B, N, C = x.shape
 
         # Compute attention scores and apply softmax along the sequence dimension
-        z = self.W_A(x)                   # (B, N, h)
-        z_star = F.softmax(z, dim=1)        # Softmax over the sequence dimension
-        z_star = z_star.permute(0, 2, 1)      # (B, h, N)
+        z = self.W_A(x)  # (B, N, h)
+        z_star = F.softmax(z, dim=1)  # Softmax over the sequence dimension
+        z_star = z_star.permute(0, 2, 1)  # (B, h, N)
         z_star = self.attn_drop(z_star)
 
         # Compute values projection and reshape to (B, h, N, C/h)
@@ -261,11 +267,11 @@ if __name__ == "__main__":
     batch_size, seq_len, dim = 2, 32, 256
     x = torch.randn(batch_size, seq_len, dim)
 
-    cat = CircularConvolutionalAttention(dim=dim)
+    cat = CircularAttention(dim=dim)
     out_cat = cat(x)
     print(f"CAT output shape: {out_cat.shape}")
 
-    avg_key = AveragedKeyCircularConvolutionalAttention(dim=dim)
+    avg_key = AveragedKeyCircularAttention(dim=dim)
     out_avg = avg_key(x)
     print(f"Averaged-Key output shape: {out_avg.shape}")
 
@@ -273,6 +279,6 @@ if __name__ == "__main__":
     out_cross = avg_key(x, context)
     print(f"Averaged-Key cross-attention output shape: {out_cross.shape}")
 
-    causal_cat = CausalCircularConvolutionalAttention(dim=dim)
+    causal_cat = CausalCircularAttention(dim=dim)
     out_causal = causal_cat(x)
     print(f"Causal CAT output shape: {out_causal.shape}")
